@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GLV Dashboard · Gelavis Ads</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" integrity="sha384-C5yHMHMCYqBhkxSfB6LtQAT2c3ThZ5bHjbpPDGFkSzc0EN5OYJApObRpnJBfVvz" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:light;--blue:#3b82f6;--indigo:#6366f1;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--gray50:#f8fafc;--gray100:#f1f5f9;--gray200:#e2e8f0;--gray400:#94a3b8;--gray600:#475569;--gray800:#1e293b;--gray900:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:var(--gray800);font-size:14px;padding-top:112px;}
+
+/* ── Sticky Header ── */
+.sticky-header{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--gray900);box-shadow:0 1px 8px rgba(0,0,0,.3);}
+.header-top{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,.07);}
+.header-logo{color:#fff;font-size:15px;font-weight:700;letter-spacing:-.02em;}
+.header-logo span{color:var(--gray400);font-weight:400;font-size:12px;margin-left:8px;}
+.date-controls{display:flex;align-items:center;gap:6px;}
+.preset-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--gray400);padding:5px 11px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;}
+.preset-btn.active,.preset-btn:hover{background:var(--blue);border-color:var(--blue);color:#fff;}
+.custom-dates{display:none;align-items:center;gap:6px;}
+.custom-dates.show{display:flex;}
+.custom-dates input[type=date]{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;padding:4px 8px;border-radius:6px;font-size:12px;cursor:pointer;color-scheme:dark;}
+.custom-dates input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.6;}
+.apply-btn{background:var(--blue);border:none;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;}
+.header-tabs{display:flex;gap:1px;padding:0 20px;background:rgba(0,0,0,.2);}
+.tab-btn{background:transparent;border:none;color:var(--gray400);padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.tab-btn.active{color:#fff;border-bottom-color:var(--blue);}
+.tab-btn:hover:not(.active){color:#fff;}
+
+/* ── Layout ── */
+.page{max-width:1400px;margin:0 auto;padding:20px;}
+.panel{display:none;}.panel.active{display:block;}
+.section{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:16px;}
+.section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray600);margin-bottom:16px;}
+
+/* ── KPI Cards ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;}
+.kpi-card{background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+.kpi-card.hl{border-top:3px solid var(--blue);}
+.kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray400);margin-bottom:8px;}
+.kpi-val{font-size:26px;font-weight:800;line-height:1;}
+.kpi-sub{font-size:11px;color:var(--gray400);margin-top:5px;}
+.g{color:var(--green);}.o{color:var(--amber);}.r{color:var(--red);}
+
+/* ── Funnel ── */
+.funnel{display:flex;align-items:stretch;}
+.f-step{flex:1;}.f-inner{background:var(--gray50);border:1px solid var(--gray200);border-radius:10px;padding:14px;height:100%;}
+.f-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gray400);margin-bottom:6px;}
+.f-val{font-size:22px;font-weight:800;color:var(--gray800);margin-bottom:3px;}
+.f-sub{font-size:11px;color:var(--gray600);}
+.f-bar{height:4px;background:var(--gray200);border-radius:2px;margin-top:10px;overflow:hidden;}
+.f-fill{height:100%;border-radius:2px;transition:width .6s ease;}
+.f-conn{display:flex;align-items:center;padding:0 4px;margin-top:-16px;}
+.f-arr-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.f-rate{font-size:10px;font-weight:700;color:var(--blue);white-space:nowrap;}
+.f-arr{color:var(--gray200);font-size:20px;}
+.f-na{opacity:.45;}
+.f-na .f-val{font-size:15px;color:var(--gray400);}
+
+/* ── Chart ── */
+.chart-controls{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.metric-select{background:var(--gray50);border:1px solid var(--gray200);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:500;color:var(--gray800);cursor:pointer;}
+.metric-select:disabled{opacity:.4;cursor:not-allowed;}
+.metric-label{font-size:12px;font-weight:600;color:var(--gray600);}
+.chart-wrap{position:relative;height:240px;}
+
+/* ── Campaign Filter (multi-select) ── */
+.filter-wrap{position:relative;margin-bottom:14px;}
+.filter-toggle{background:var(--gray50);border:1px solid var(--gray200);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:220px;max-width:400px;}
+.filter-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#fff;border:1px solid var(--gray200);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:320px;max-height:280px;overflow-y:auto;padding:8px;}
+.filter-dropdown.open{display:block;}
+.filter-option{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:13px;}
+.filter-option:hover{background:var(--gray50);}
+.filter-option input[type=checkbox]{accent-color:var(--blue);cursor:pointer;}
+.filter-actions{display:flex;gap:8px;padding:8px 8px 4px;border-top:1px solid var(--gray100);margin-top:4px;}
+.filter-action-btn{font-size:12px;font-weight:600;color:var(--blue);cursor:pointer;background:none;border:none;padding:2px 4px;}
+
+/* ── Grid.js overrides ── */
+.gridjs-wrapper{border:none!important;box-shadow:none!important;}
+.gridjs-container{border:none!important;}
+th.gridjs-th{background:var(--gray50)!important;font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.05em!important;color:var(--gray600)!important;border-bottom:1px solid var(--gray200)!important;padding:9px 12px!important;}
+td.gridjs-td{font-size:13px!important;padding:9px 12px!important;border-bottom:1px solid var(--gray100)!important;}
+tr.gridjs-tr:last-child td{border-bottom:none!important;}
+
+/* ── Creative Table ── */
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;}
+.badge-v{background:#ede9fe;color:#7c3aed;}.badge-s{background:#f0fdf4;color:#15803d;}
+.badge-active{background:#dcfce7;color:#15803d;}.badge-paused{background:#fef9c3;color:#a16207;}
+
+/* ── Trends table colors ── */
+.czsk-col{color:#3b82f6;font-weight:600;}.us-col{color:#ef4444;font-weight:600;}
+
+/* ── Loading / Error ── */
+.loading{text-align:center;padding:60px 20px;color:var(--gray400);}
+.spinner{width:32px;height:32px;border:3px solid var(--gray200);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.err{text-align:center;padding:40px;color:var(--red);font-size:13px;}
+.empty{padding:30px;text-align:center;color:var(--gray400);font-size:13px;}
+.note{font-size:11px;color:var(--gray400);margin-top:8px;}
+
+/* ── Responsive ── */
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<!-- ═══ STICKY HEADER ═══ -->
+<header class="sticky-header">
+  <div class="header-top">
+    <div class="header-logo">GLV · Gelavis Ads <span>Account 359758259164738 · CZK</span></div>
+    <div class="date-controls">
+      <button class="preset-btn" data-p="last_7d">7d</button>
+      <button class="preset-btn" data-p="last_14d">14d</button>
+      <button class="preset-btn active" data-p="last_30d">30d</button>
+      <button class="preset-btn" data-p="last_90d">90d</button>
+      <button class="preset-btn" id="custom-toggle">Custom</button>
+      <div class="custom-dates" id="custom-dates">
+        <span style="color:var(--gray400);font-size:12px;">From</span>
+        <input type="date" id="date-from">
+        <span style="color:var(--gray400);font-size:12px;">To</span>
+        <input type="date" id="date-to">
+        <button class="apply-btn" id="apply-custom">Apply</button>
+      </div>
+      <span id="updated-at" style="font-size:11px;color:var(--gray400);margin-left:6px;"></span>
+    </div>
+  </div>
+  <div class="header-tabs">
+    <button class="tab-btn active" data-tab="czsk">🇨🇿 CZSK</button>
+    <button class="tab-btn" data-tab="us">🇺🇸 US</button>
+    <button class="tab-btn" data-tab="trends">📈 Trends</button>
+  </div>
+</header>
+
+<div class="page">
+
+<!-- ═══ LOADING ═══ -->
+<div id="loading" class="loading"><div class="spinner"></div><span id="loading-msg">Loading campaigns…</span></div>
+<div id="error" class="err" style="display:none;"></div>
+
+<!-- ═══ CZSK PANEL ═══ -->
+<div class="panel active" id="panel-czsk">
+  <div class="kpi-grid" id="kpi-czsk"></div>
+  <div class="section"><div class="section-title">Purchase Funnel</div><div class="funnel" id="funnel-czsk"></div></div>
+  <div class="section">
+    <div class="section-title">Daily Performance Chart</div>
+    <div class="chart-controls">
+      <span class="metric-label">Left Y:</span>
+      <select class="metric-select" id="chart-left-czsk" onchange="refreshChart('czsk')"></select>
+      <span class="metric-label">Right Y:</span>
+      <select class="metric-select" id="chart-right-czsk" onchange="refreshChart('czsk')"></select>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-czsk"></canvas></div>
+  </div>
+  <div class="section">
+    <div class="section-title">Daily Campaign Table</div>
+    <div class="filter-wrap">
+      <div class="filter-toggle" id="filter-toggle-czsk" onclick="toggleFilter('czsk')">
+        <span id="filter-label-czsk">All campaigns</span><span style="color:var(--gray400);">▾</span>
+      </div>
+      <div class="filter-dropdown" id="filter-dropdown-czsk">
+        <div class="filter-actions">
+          <button class="filter-action-btn" onclick="selectAll('czsk')">Select all</button>
+          <button class="filter-action-btn" onclick="clearAll('czsk')">Clear</button>
+        </div>
+        <div id="filter-options-czsk"></div>
+      </div>
+    </div>
+    <div id="daily-table-czsk"></div>
+  </div>
+  <div class="section"><div class="section-title">Creative Evaluation</div><div id="creative-czsk"></div></div>
+</div>
+
+<!-- ═══ US PANEL ═══ -->
+<div class="panel" id="panel-us">
+  <div class="kpi-grid" id="kpi-us"></div>
+  <div class="section"><div class="section-title">Purchase Funnel</div><div class="funnel" id="funnel-us"></div></div>
+  <div class="section">
+    <div class="section-title">Daily Performance Chart</div>
+    <div class="chart-controls">
+      <span class="metric-label">Left Y:</span>
+      <select class="metric-select" id="chart-left-us" onchange="refreshChart('us')"></select>
+      <span class="metric-label">Right Y:</span>
+      <select class="metric-select" id="chart-right-us" onchange="refreshChart('us')"></select>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-us"></canvas></div>
+  </div>
+  <div class="section">
+    <div class="section-title">Daily Campaign Table</div>
+    <div class="filter-wrap">
+      <div class="filter-toggle" id="filter-toggle-us" onclick="toggleFilter('us')">
+        <span id="filter-label-us">All campaigns</span><span style="color:var(--gray400);">▾</span>
+      </div>
+      <div class="filter-dropdown" id="filter-dropdown-us">
+        <div class="filter-actions">
+          <button class="filter-action-btn" onclick="selectAll('us')">Select all</button>
+          <button class="filter-action-btn" onclick="clearAll('us')">Clear</button>
+        </div>
+        <div id="filter-options-us"></div>
+      </div>
+    </div>
+    <div id="daily-table-us"></div>
+  </div>
+  <div class="section"><div class="section-title">Creative Evaluation</div><div id="creative-us"></div></div>
+</div>
+
+<!-- ═══ TRENDS PANEL ═══ -->
+<div class="panel" id="panel-trends">
+  <div class="section">
+    <div class="section-title">CZSK vs US — Daily Comparison</div>
+    <div class="chart-controls">
+      <span class="metric-label">Metric:</span>
+      <select class="metric-select" id="chart-trends-metric" onchange="refreshTrendsChart()"></select>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-trends"></canvas></div>
+  </div>
+  <div class="section">
+    <div class="section-title">Daily Breakdown by Region</div>
+    <div id="trends-table"></div>
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const AD_ACCOUNT = '359758259164738';
+const METRIC_OPTIONS = [
+  { key:'spend',       label:'Spend (CZK)',        unit:'czk' },
+  { key:'lp_views',   label:'LP Views',            unit:'num' },
+  { key:'purchases',  label:'Purchases',           unit:'num' },
+  { key:'cost_lp',    label:'Cost / LP View',      unit:'czk' },
+  { key:'purchases_null', label:'Checkouts (n/a)', unit:'num', disabled:true },
+  { key:'cost_chk',   label:'Cost / Checkout (n/a)',unit:'czk', disabled:true },
+  { key:'cpa',        label:'CPA / CPP (CZK)',      unit:'czk' },
+  { key:'roas',       label:'ROAS',                unit:'x' },
+];
+const TRENDS_METRICS = METRIC_OPTIONS.filter(m => !m.disabled);
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let datePreset = 'last_30d';
+let customRange = null; // {since, until}
+let aggregateCampaigns = []; // one row per campaign, full period (for KPIs/funnel)
+let dailyCampaigns = [];    // one row per campaign per day (for chart/table)
+let adCreatives   = []; // ad-level rows
+let campaignMeta  = {}; // id → {name, segment}
+let filterState   = { czsk: null, us: null }; // null = all selected
+let charts = {};
+let grids  = {};
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+const parseAmt = s => (s && s !== 'Not available') ? (parseFloat(String(s).replace(/[^0-9.-]/g,'')) || 0) : 0;
+const parseNum = s => (s && s !== 'Not available') ? (parseInt(String(s).replace(/,/g,'')) || 0) : 0;
+const parseRoas = s => (s && s !== 'Not available') ? (parseFloat(s) || 0) : 0;
+const isValid  = n => /^(TUC|GLV)_\d+_/.test(n);
+const isUS     = n => n.includes('_US_');
+const isAdvert = n => n.toLowerCase().includes('advertorial');
+
+function getRevenue(raw, spend, roas) {
+  try {
+    const rv = raw.result_values;
+    if (!rv || rv === 'Not available') return { v: spend * roas, est: true };
+    const arr = Array.isArray(rv) ? rv : [];
+    for (const item of arr) {
+      if (item.indicator === 'mixed') return { v: spend * roas, est: true };
+      if (item.indicator?.includes('purchase') && item.values?.[0]?.value)
+        return { v: parseAmt(item.values[0].value), est: false };
+    }
+  } catch(e){}
+  return { v: spend * roas, est: true };
+}
+
+function fmt(n,d=0){
+  if(n===0||isNaN(n))return'0';
+  if(n>=1e6)return(n/1e6).toFixed(1)+'M';
+  if(n>=1000)return(n/1000).toFixed(d)+'K';
+  return n.toLocaleString('en',{maximumFractionDigits:d});
+}
+function fmtCzk(n){if(!n||isNaN(n)||n===0)return'—';if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1000)return(n/1000).toFixed(0)+'K';return Math.round(n).toLocaleString();}
+function roasClass(v){return v>=2?'g':v>=1?'o':'r';}
+
+function computeMetric(key, spend, lp, pur, revenue){
+  if(key==='spend')     return spend;
+  if(key==='lp_views')  return lp;
+  if(key==='purchases') return pur;
+  if(key==='cost_lp')   return lp>0 ? spend/lp : 0;
+  if(key==='cpa')       return pur>0 ? spend/pur : 0;
+  if(key==='roas')      return spend>0 ? revenue/spend : 0;
+  return 0;
+}
+
+function metricLabel(key){ return (METRIC_OPTIONS.find(m=>m.key===key)||{label:key}).label; }
+function metricUnit(key){ return (METRIC_OPTIONS.find(m=>m.key===key)||{unit:'num'}).unit; }
+function formatMetricVal(key,v){
+  const u=metricUnit(key);
+  if(u==='czk')return fmtCzk(v)+' CZK';
+  if(u==='x')return v>0?v.toFixed(2)+'x':'—';
+  return fmt(v);
+}
+
+// ═══════════════════════════════════════════════════════
+// DATA PROCESSING
+// ═══════════════════════════════════════════════════════
+
+// Robust date extraction — handles ISO "2026-05-20" and "May 20, 2026" formats
+function extractDate(r) {
+  const raw = r.date_start || r.date_stop || r.start_time || '';
+  if (!raw || raw === 'Not available') return null;
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+  // "May 20, 2026" → parse and re-format
+  try {
+    const d = new Date(raw);
+    if (!isNaN(d)) return d.toISOString().slice(0, 10);
+  } catch(e) {}
+  return null;
+}
+
+// Format date for display: "2026-05-20" → "05-20"
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return iso.slice(5); // "MM-DD"
+}
+
+function processAggregate(rawRows) {
+  // Aggregate call (no time_increment) — one row per campaign
+  for (const r of rawRows) {
+    if (!isValid(r.name)) continue;
+    const seg = isUS(r.name) ? 'us' : 'czsk';
+    if (seg === 'us' && isAdvert(r.name)) continue;
+    campaignMeta[r.id] = { name: r.name, segment: seg };
+  }
+}
+
+function processDaily(rawRows) {
+  const out = [];
+  for (const r of rawRows) {
+    if (!isValid(r.name)) continue;
+    const seg = isUS(r.name) ? 'us' : 'czsk';
+    if (seg === 'us' && isAdvert(r.name)) continue;
+    const date = extractDate(r);
+    if (!date) continue; // skip rows without a valid date
+    const spend = parseAmt(r.amount_spent);
+    const roas  = parseRoas(r.purchase_roas);
+    const rev   = getRevenue(r, spend, roas);
+    campaignMeta[r.id] = { name: r.name, segment: seg };
+    out.push({
+      id: r.id, name: r.name, segment: seg, date,
+      spend, lp: parseNum(r['actions:link_click']),
+      purchases: parseNum(r['actions:omni_purchase']),
+      revenue: rev.v, revenueEst: rev.est,
+      impressions: parseNum(r.impressions),
+    });
+  }
+  return out;
+}
+
+function processAggregateRows(rawRows) {
+  // Same as processDaily but without date filtering — for KPI/funnel/creative pass
+  const out = [];
+  for (const r of rawRows) {
+    if (!isValid(r.name)) continue;
+    const seg = isUS(r.name) ? 'us' : 'czsk';
+    if (seg === 'us' && isAdvert(r.name)) continue;
+    const spend = parseAmt(r.amount_spent);
+    const roas  = parseRoas(r.purchase_roas);
+    const rev   = getRevenue(r, spend, roas);
+    campaignMeta[r.id] = { name: r.name, segment: seg };
+    // Use a fixed date so aggregate rows work in aggregate() but not byDate()
+    out.push({
+      id: r.id, name: r.name, segment: seg, date: null,
+      spend, lp: parseNum(r['actions:link_click']),
+      purchases: parseNum(r['actions:omni_purchase']),
+      revenue: rev.v, revenueEst: rev.est,
+      impressions: parseNum(r.impressions),
+    });
+  }
+  return out;
+}
+
+function processCreatives(rawRows) {
+  return rawRows.map(r => {
+    const spend = parseAmt(r.amount_spent);
+    const roas  = parseRoas(r.purchase_roas);
+    const rev   = getRevenue(r, spend, roas);
+    const thru  = parseNum(r.video_thruplay_watched_actions);
+    const p100  = parseNum(r.video_p100_watched_actions);
+    const imp   = parseNum(r.impressions);
+    const lp    = parseNum(r['actions:link_click']);
+    const pur   = parseNum(r['actions:omni_purchase']);
+    const campId = r.campaign_id;
+    const campInfo = campaignMeta[campId] || {};
+    return {
+      id: r.id, name: r.name, status: r.status,
+      campaignId: campId, campaignName: campInfo.name || '',
+      segment: campInfo.segment || null,
+      spend, impressions: imp, lp, purchases: pur,
+      ctr: parseFloat(r.ctr) || 0,
+      roas: roas > 0 ? roas : (spend>0 ? rev.v/spend : 0),
+      revenue: rev.v,
+      cpp: pur > 0 ? spend/pur : 0,
+      costLp: lp > 0 ? spend/lp : 0,
+      isVideo: thru > 0,
+      thruPlayRate: imp > 0 ? thru/imp*100 : 0,
+      p100Rate: imp > 0 ? p100/imp*100 : 0,
+    };
+  // Only keep creatives whose campaign is known (TUC/GLV) and have spend
+  }).filter(c => campaignMeta[c.campaignId] && c.spend > 0);
+}
+
+function aggregate(rows) {
+  const spend = rows.reduce((s,r)=>s+r.spend,0);
+  const lp    = rows.reduce((s,r)=>s+r.lp,0);
+  const pur   = rows.reduce((s,r)=>s+r.purchases,0);
+  const rev   = rows.reduce((s,r)=>s+r.revenue,0);
+  const imp   = rows.reduce((s,r)=>s+r.impressions,0);
+  const roas  = spend>0 ? rev/spend : 0;
+  const cpp   = pur>0 ? spend/pur : 0;
+  const costLp = lp>0 ? spend/lp : 0;
+  return {spend,lp,purchases:pur,revenue:rev,impressions:imp,roas,cpp,costLp};
+}
+
+function byDate(rows, selectedIds) {
+  const filtered = selectedIds ? rows.filter(r=>selectedIds.has(r.id)) : rows;
+  const map = {};
+  for (const r of filtered) {
+    if (!r.date) continue; // skip rows without a valid date
+    if (!map[r.date]) map[r.date]={date:r.date,spend:0,lp:0,purchases:0,revenue:0,impressions:0};
+    const d = map[r.date];
+    d.spend+=r.spend; d.lp+=r.lp; d.purchases+=r.purchases;
+    d.revenue+=r.revenue; d.impressions+=r.impressions;
+  }
+  return Object.values(map).sort((a,b)=> a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+}
+
+function getSegmentRows(seg) {
+  return dailyCampaigns.filter(r=>r.segment===seg);
+}
+function getAggSegmentRows(seg) {
+  return aggregateCampaigns.filter(r=>r.segment===seg);
+}
+
+function getSelectedIds(seg) {
+  return filterState[seg]; // null=all, Set=specific
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER KPIs
+// ═══════════════════════════════════════════════════════
+function renderKPIs(seg) {
+  const rows = getAggSegmentRows(seg);
+  const a = aggregate(rows);
+  const hasEst = rows.some(r=>r.revenueEst&&r.revenue>0);
+  document.getElementById('kpi-'+seg).innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Spend</div><div class="kpi-val">${fmtCzk(a.spend)}</div><div class="kpi-sub">CZK</div></div>
+    <div class="kpi-card"><div class="kpi-label">Revenue</div><div class="kpi-val">${fmtCzk(a.revenue)}</div><div class="kpi-sub">CZK${hasEst?' (incl. est.)':''}</div></div>
+    <div class="kpi-card hl"><div class="kpi-label">ROAS</div><div class="kpi-val ${roasClass(a.roas)}">${a.revenue>0?a.roas.toFixed(2)+'x':'—'}</div><div class="kpi-sub">Revenue / Spend</div></div>
+    <div class="kpi-card"><div class="kpi-label">Purchases</div><div class="kpi-val">${a.purchases||'—'}</div><div class="kpi-sub">${a.cpp>0?'CPP: '+fmtCzk(a.cpp)+' CZK':'CPP: —'}</div></div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER FUNNEL
+// ═══════════════════════════════════════════════════════
+function renderFunnel(seg) {
+  const rows = getAggSegmentRows(seg);
+  const a = aggregate(rows);
+  const lpRate  = a.impressions>0 ? (a.lp/a.impressions*100) : 0;
+  const purRate = a.lp>0 ? (a.purchases/a.lp*100) : 0;
+
+  const steps = [
+    { label:'Ad', sub:'Impressions', val:fmt(a.impressions), bar:100, color:'#3b82f6', conv:null },
+    { label:'LP', sub:'Link Clicks', val:fmt(a.lp), bar:a.impressions>0?Math.min(a.lp/a.impressions*100,100):0, color:'#6366f1', conv:lpRate>0?lpRate.toFixed(1)+'%':null },
+    { label:'Checkout', sub:'Not available via Meta MCP', val:'—', bar:0, color:'#8b5cf6', conv:null, na:true },
+    { label:'Purchase', sub:'Purchases', val:a.purchases||'—', bar:a.lp>0?Math.min(a.purchases/a.lp*100*15,100):0, color:'#10b981', conv:purRate>0?purRate.toFixed(1)+'% from LP':null },
+  ];
+
+  const el = document.getElementById('funnel-'+seg);
+  el.innerHTML = '';
+  steps.forEach((s,i) => {
+    const step = document.createElement('div');
+    step.className='f-step'+(s.na?' f-na':'');
+    step.innerHTML=`<div class="f-inner"><div class="f-label">${s.label}</div><div class="f-val">${s.val}</div><div class="f-sub">${s.sub}</div><div class="f-bar"><div class="f-fill" style="width:${s.bar}%;background:${s.color}"></div></div></div>`;
+    el.appendChild(step);
+    if(i<steps.length-1){
+      const conn=document.createElement('div');
+      conn.className='f-conn';
+      conn.innerHTML=`<div class="f-arr-wrap">${steps[i+1].conv?`<span class="f-rate">${steps[i+1].conv}</span>`:''}<span class="f-arr">›</span></div>`;
+      el.appendChild(conn);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT METRIC SELECTS
+// ═══════════════════════════════════════════════════════
+function initSelects() {
+  ['czsk','us'].forEach(seg=>{
+    ['chart-left-','chart-right-'].forEach((prefix,i)=>{
+      const el=document.getElementById(prefix+seg);
+      el.innerHTML=METRIC_OPTIONS.map(m=>`<option value="${m.key}"${m.disabled?'disabled':''} title="${m.disabled?'Not available via Meta MCP':''}">${m.label}</option>`).join('');
+      el.value = i===0 ? 'spend' : 'roas';
+    });
+  });
+  const te=document.getElementById('chart-trends-metric');
+  te.innerHTML=TRENDS_METRICS.map(m=>`<option value="${m.key}">${m.label}</option>`).join('');
+  te.value='spend';
+}
+
+// ═══════════════════════════════════════════════════════
+// CHART
+// ═══════════════════════════════════════════════════════
+const CHART_COLORS = ['#3b82f6','#ef4444','#10b981','#f59e0b','#6366f1'];
+
+function buildChartData(seg) {
+  const sel = getSelectedIds(seg);
+  const rows = getSegmentRows(seg);
+  const daily = byDate(rows, sel);
+  const lKey = document.getElementById('chart-left-'+seg).value;
+  const rKey = document.getElementById('chart-right-'+seg).value;
+  const labels = daily.map(d=>fmtDate(d.date)); // MM-DD
+  const leftVals  = daily.map(d=>computeMetric(lKey,d.spend,d.lp,d.purchases,d.revenue));
+  const rightVals = daily.map(d=>computeMetric(rKey,d.spend,d.lp,d.purchases,d.revenue));
+  return {labels,leftVals,rightVals,lKey,rKey};
+}
+
+function refreshChart(seg) {
+  const canvasId='chart-'+seg;
+  const {labels,leftVals,rightVals,lKey,rKey}=buildChartData(seg);
+  if(charts[seg]){charts[seg].destroy();delete charts[seg];}
+  const ctx=document.getElementById(canvasId).getContext('2d');
+  charts[seg]=new Chart(ctx,{
+    data:{
+      labels,
+      datasets:[
+        {type:'bar',label:metricLabel(lKey),data:leftVals,backgroundColor:'rgba(59,130,246,.25)',borderColor:'#3b82f6',borderWidth:1.5,yAxisID:'y',order:2},
+        {type:'line',label:metricLabel(rKey),data:rightVals,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',borderWidth:2,pointRadius:3,fill:false,yAxisID:'y1',order:1,tension:.3},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{
+          label:(ctx)=>`${ctx.dataset.label}: ${formatMetricVal(ctx.datasetIndex===0?lKey:rKey,ctx.raw)}`
+        }}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11},maxRotation:45}},
+        y:{position:'left',grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11},callback:v=>formatMetricVal(lKey,v)}},
+        y1:{position:'right',grid:{display:false},ticks:{font:{size:11},callback:v=>formatMetricVal(rKey,v)}},
+      }
+    }
+  });
+}
+
+function refreshTrendsChart() {
+  const key=document.getElementById('chart-trends-metric').value;
+  const czskDaily=byDate(getSegmentRows('czsk'));
+  const usDaily  =byDate(getSegmentRows('us'));
+  const allDates=[...new Set([...czskDaily.map(d=>d.date),...usDaily.map(d=>d.date)])].sort();
+  const czskMap=Object.fromEntries(czskDaily.map(d=>[d.date,d]));
+  const usMap  =Object.fromEntries(usDaily.map(d=>[d.date,d]));
+  const labels=allDates.map(d=>fmtDate(d));
+  const czskVals=allDates.map(d=>{const r=czskMap[d];return r?computeMetric(key,r.spend,r.lp,r.purchases,r.revenue):0;});
+  const usVals  =allDates.map(d=>{const r=usMap[d];return r?computeMetric(key,r.spend,r.lp,r.purchases,r.revenue):0;});
+  if(charts['trends']){charts['trends'].destroy();delete charts['trends'];}
+  const ctx=document.getElementById('chart-trends').getContext('2d');
+  charts['trends']=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'🇨🇿 CZSK',data:czskVals,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',borderWidth:2,tension:.3,fill:true,pointRadius:3},
+      {label:'🇺🇸 US',data:usVals,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.08)',borderWidth:2,tension:.3,fill:true,pointRadius:3},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:(ctx)=>`${ctx.dataset.label}: ${formatMetricVal(key,ctx.raw)}`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11},maxRotation:45}},
+        y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11},callback:v=>formatMetricVal(key,v)}},
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// CAMPAIGN FILTER
+// ═══════════════════════════════════════════════════════
+function buildFilterOptions(seg) {
+  const ids=[...new Set(getSegmentRows(seg).map(r=>r.id))];
+  const container=document.getElementById('filter-options-'+seg);
+  container.innerHTML=ids.map(id=>{
+    const name=campaignMeta[id]?.name||id;
+    const short=name.replace(/^(TUC|GLV)_\d+_/,'').replace(/_/g,' ');
+    return `<label class="filter-option"><input type="checkbox" value="${id}" checked onchange="onFilterChange('${seg}')"><span title="${name}">${short}</span></label>`;
+  }).join('');
+  updateFilterLabel(seg);
+}
+
+function toggleFilter(seg){document.getElementById('filter-dropdown-'+seg).classList.toggle('open');}
+function selectAll(seg){document.querySelectorAll(`#filter-options-${seg} input`).forEach(c=>c.checked=true);onFilterChange(seg);}
+function clearAll(seg){document.querySelectorAll(`#filter-options-${seg} input`).forEach(c=>c.checked=false);onFilterChange(seg);}
+
+function onFilterChange(seg){
+  const checked=[...document.querySelectorAll(`#filter-options-${seg} input:checked`)].map(c=>c.value);
+  const allIds=[...document.querySelectorAll(`#filter-options-${seg} input`)].map(c=>c.value);
+  filterState[seg]=checked.length===allIds.length?null:new Set(checked);
+  updateFilterLabel(seg);
+  refreshChart(seg);
+  renderDailyTable(seg);
+}
+
+function updateFilterLabel(seg){
+  const all=[...document.querySelectorAll(`#filter-options-${seg} input`)].length;
+  const checked=[...document.querySelectorAll(`#filter-options-${seg} input:checked`)].length;
+  document.getElementById('filter-label-'+seg).textContent=checked===all?'All campaigns':`${checked} of ${all} campaigns`;
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click',e=>{
+  ['czsk','us'].forEach(seg=>{
+    const wrap=document.getElementById('filter-wrap-'+seg);
+    const dd=document.getElementById('filter-dropdown-'+seg);
+    if(dd&&!e.target.closest('#filter-toggle-'+seg)&&!e.target.closest('#filter-dropdown-'+seg)){
+      dd.classList.remove('open');
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// DAILY TABLE
+// ═══════════════════════════════════════════════════════
+function renderDailyTable(seg) {
+  const sel=getSelectedIds(seg);
+  const rows=getSegmentRows(seg);
+  const daily=byDate(rows,sel);
+  const container=document.getElementById('daily-table-'+seg);
+  container.innerHTML='';
+  if(!daily.length){container.innerHTML='<div class="empty">No data.</div>';return;}
+  if(grids['daily-'+seg]){try{grids['daily-'+seg].destroy();}catch(e){}grids['daily-'+seg]=null;}
+  const data=daily.map(d=>[
+    d.date, fmtCzk(d.spend), fmt(d.impressions), fmt(d.lp),
+    d.lp>0?(d.spend/d.lp).toFixed(0)+' CZK':'—',
+    d.purchases||'—',
+    d.purchases>0?fmtCzk(d.spend/d.purchases)+' CZK':'—',
+    d.revenue>0?d.revenue/d.spend>0?(d.revenue/d.spend).toFixed(2)+'x':'—':'—',
+  ]);
+  grids['daily-'+seg]=new gridjs.Grid({
+    columns:['Date','Spend','Imp.','LP Views','Cost/LP','Purchases','CPP','ROAS'],
+    data,sort:false,
+  }).render(container);
+}
+
+// ═══════════════════════════════════════════════════════
+// TRENDS TABLE
+// ═══════════════════════════════════════════════════════
+function renderTrendsTable() {
+  const czskMap=Object.fromEntries(byDate(getSegmentRows('czsk')).map(d=>[d.date,d]));
+  const usMap  =Object.fromEntries(byDate(getSegmentRows('us')).map(d=>[d.date,d]));
+  const allDates=[...new Set([...Object.keys(czskMap),...Object.keys(usMap)])].sort();
+  const container=document.getElementById('trends-table');
+  container.innerHTML='';
+  if(!allDates.length){container.innerHTML='<div class="empty">No data.</div>';return;}
+  if(grids['trends']){try{grids['trends'].destroy();}catch(e){}grids['trends']=null;}
+  const data=allDates.map(date=>{
+    const c=czskMap[date]||{spend:0,lp:0,purchases:0,revenue:0};
+    const u=usMap[date]  ||{spend:0,lp:0,purchases:0,revenue:0};
+    const cRoas=c.spend>0?c.revenue/c.spend:0;
+    const uRoas=u.spend>0?u.revenue/u.spend:0;
+    return[date,
+      fmtCzk(c.spend),fmt(c.lp),c.purchases||'—',cRoas>0?cRoas.toFixed(2)+'x':'—',
+      fmtCzk(u.spend),fmt(u.lp),u.purchases||'—',uRoas>0?uRoas.toFixed(2)+'x':'—',
+    ];
+  });
+  grids['trends']=new gridjs.Grid({
+    columns:[
+      'Date',
+      {name:'CZSK Spend',attributes:()=>({class:'czsk-col'})},
+      {name:'CZSK LP',attributes:()=>({class:'czsk-col'})},
+      {name:'CZSK Purch.',attributes:()=>({class:'czsk-col'})},
+      {name:'CZSK ROAS',attributes:()=>({class:'czsk-col'})},
+      {name:'US Spend',attributes:()=>({class:'us-col'})},
+      {name:'US LP',attributes:()=>({class:'us-col'})},
+      {name:'US Purch.',attributes:()=>({class:'us-col'})},
+      {name:'US ROAS',attributes:()=>({class:'us-col'})},
+    ],data,sort:false,
+  }).render(container);
+}
+
+// ═══════════════════════════════════════════════════════
+// CREATIVE TABLE
+// ═══════════════════════════════════════════════════════
+function renderCreatives(seg) {
+  const creatives=adCreatives.filter(c=>c.segment===seg&&c.spend>0);
+  const container=document.getElementById('creative-'+seg);
+  container.innerHTML='';
+  if(!creatives.length){container.innerHTML='<div class="empty">No creative data.</div>';return;}
+  if(grids['creative-'+seg]){try{grids['creative-'+seg].destroy();}catch(e){}grids['creative-'+seg]=null;}
+  const data=creatives.map(c=>[
+    c.name,
+    c.isVideo?'Video':'Static',
+    c.status,
+    c.spend,
+    c.impressions,
+    c.ctr,
+    c.lp,
+    c.costLp,
+    c.purchases,
+    c.cpp,
+    c.roas,
+    c.isVideo?c.thruPlayRate:null,
+    c.isVideo?c.p100Rate:null,
+  ]);
+  grids['creative-'+seg]=new gridjs.Grid({
+    columns:[
+      {name:'Creative',width:'200px',formatter:v=>gridjs.html(`<span title="${v}" style="display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v}</span>`)},
+      {name:'Type',formatter:v=>gridjs.html(`<span class="badge ${v==='Video'?'badge-v':'badge-s'}">${v}</span>`)},
+      {name:'Status',formatter:v=>gridjs.html(`<span class="badge ${v==='ACTIVE'?'badge-active':'badge-paused'}">${v}</span>`)},
+      {name:'Spend',sort:true,formatter:v=>fmtCzk(v)},
+      {name:'Imp.',sort:true,formatter:v=>fmt(v)},
+      {name:'CTR',sort:true,formatter:v=>v>0?v.toFixed(2)+'%':'—'},
+      {name:'LP Views',sort:true,formatter:v=>fmt(v)},
+      {name:'Cost/LP',sort:true,formatter:v=>v>0?fmtCzk(v)+' CZK':'—'},
+      {name:'Purch.',sort:true,formatter:v=>v||'—'},
+      {name:'CPP',sort:true,formatter:v=>v>0?fmtCzk(v)+' CZK':'—'},
+      {name:'ROAS',sort:true,formatter:v=>v>0?gridjs.html(`<span class="${roasClass(v)}" style="font-weight:700">${v.toFixed(2)}x</span>`):'—'},
+      {name:'ThruPlay%',sort:true,formatter:v=>v!==null?v.toFixed(1)+'%':'—'},
+      {name:'100%',sort:true,formatter:v=>v!==null?v.toFixed(1)+'%':'—'},
+    ],
+    data,sort:true,
+  }).render(container);
+}
+
+// ═══════════════════════════════════════════════════════
+// FULL RENDER
+// ═══════════════════════════════════════════════════════
+function renderKPIsAndFunnel() {
+  ['czsk','us'].forEach(seg=>{
+    renderKPIs(seg);
+    renderFunnel(seg);
+  });
+}
+function renderCharts() {
+  ['czsk','us'].forEach(seg=>{
+    buildFilterOptions(seg);
+    refreshChart(seg);
+    renderDailyTable(seg);
+  });
+  refreshTrendsChart();
+  renderTrendsTable();
+}
+function renderAll() {
+  renderKPIsAndFunnel();
+  renderCharts();
+  ['czsk','us'].forEach(seg=>renderCreatives(seg));
+}
+
+function setStatus(msg) {
+  const el = document.getElementById('loading-msg');
+  if(el) el.textContent = msg;
+}
+
+// ═══════════════════════════════════════════════════════
+// DATA LOAD — calls /api/fb-data (Vercel serverless function)
+// ═══════════════════════════════════════════════════════
+async function apiFetch(type) {
+  const qs = new URLSearchParams({ type });
+  if (customRange) qs.set('time_range', JSON.stringify(customRange));
+  else qs.set('date_preset', datePreset);
+  const r = await fetch(`/api/fb-data?${qs}`);
+  const json = await r.json();
+  if (!r.ok) throw new Error(json.error || `HTTP ${r.status}`);
+  return json; // { rows: [...] }
+}
+
+async function loadData() {
+  const loadEl = document.getElementById('loading');
+  const errEl  = document.getElementById('error');
+  loadEl.style.display='block';
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  errEl.style.display='none';
+  Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});
+  charts={};
+
+  const errors = [];
+
+  // ── STEP 1: Aggregate — KPIs / funnel
+  setStatus('Loading campaign totals…');
+  try {
+    const d = await apiFetch('aggregate');
+    campaignMeta = {};
+    aggregateCampaigns = processAggregateRows(d.rows);
+    filterState = {czsk:null, us:null};
+    renderKPIsAndFunnel();
+  } catch(err) { errors.push('Totals: '+err.message); }
+
+  // ── STEP 2: Daily — chart / table
+  setStatus('Loading daily breakdown…');
+  try {
+    const d = await apiFetch('daily');
+    dailyCampaigns = processDaily(d.rows);
+    filterState = {czsk:null, us:null};
+    renderCharts();
+  } catch(err) {
+    errors.push('Daily chart: '+err.message);
+    ['czsk','us'].forEach(seg=>{
+      const el=document.getElementById('daily-table-'+seg);
+      if(el) el.innerHTML=`<div class="empty" style="color:#ef4444">Daily data unavailable: ${err.message}</div>`;
+    });
+  }
+
+  // ── STEP 3: Ads — creatives
+  setStatus('Loading creatives…');
+  try {
+    const d = await apiFetch('ads');
+    adCreatives = processCreatives(d.rows);
+    ['czsk','us'].forEach(seg=>renderCreatives(seg));
+  } catch(err) { errors.push('Creatives: '+err.message); }
+
+  // Done
+  loadEl.style.display='none';
+  document.getElementById('updated-at').textContent = 'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  if(errors.length){
+    errEl.style.display='block';
+    errEl.textContent='Partial errors: '+errors.join(' | ');
+  }
+  const activeTab=document.querySelector('.tab-btn.active')?.dataset.tab||'czsk';
+  document.getElementById('panel-'+activeTab)?.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════════════
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-'+btn.dataset.tab)?.classList.add('active');
+    const seg=btn.dataset.tab;
+    if(seg==='czsk'||seg==='us'){if(charts[seg]){charts[seg].resize();}}
+    else if(seg==='trends'){if(charts['trends']){charts['trends'].resize();}}
+  });
+});
+
+// Preset date buttons
+document.querySelectorAll('.preset-btn[data-p]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    datePreset=btn.dataset.p;
+    customRange=null;
+    document.getElementById('custom-dates').classList.remove('show');
+    loadData();
+  });
+});
+
+// Custom date toggle
+document.getElementById('custom-toggle').addEventListener('click',()=>{
+  const cd=document.getElementById('custom-dates');
+  cd.classList.toggle('show');
+  if(cd.classList.contains('show')){
+    document.querySelectorAll('.preset-btn[data-p]').forEach(b=>b.classList.remove('active'));
+    document.getElementById('custom-toggle').classList.add('active');
+    const today=new Date().toISOString().slice(0,10);
+    const d30=new Date(Date.now()-30*864e5).toISOString().slice(0,10);
+    if(!document.getElementById('date-from').value) document.getElementById('date-from').value=d30;
+    if(!document.getElementById('date-to').value)   document.getElementById('date-to').value=today;
+  }
+});
+
+document.getElementById('apply-custom').addEventListener('click',()=>{
+  const since=document.getElementById('date-from').value;
+  const until=document.getElementById('date-to').value;
+  if(!since||!until){alert('Please select both dates.');return;}
+  customRange={since,until};
+  datePreset=null;
+  loadData();
+});
+
+// Init
+initSelects();
+loadData();
+</script>
+</body>
+</html>
