@@ -67,7 +67,7 @@ function normalizeAd(row, statusMap) {
     'actions:outbound_click':      getAction(row.actions, 'outbound_click'),
     'action_values:omni_purchase': getActionValue(row.action_values, 'omni_purchase'),
     video_thruplay_watched_actions: getVideoMetric(row.video_thruplay_watched_actions),
-    video_3_sec_watched_actions:    getVideoMetric(row.video_3_sec_watched_actions),
+    video_3_sec_watched_actions:    getAction(row.actions, 'video_view'),
     video_p100_watched_actions:     getVideoMetric(row.video_p100_watched_actions),
   };
 }
@@ -129,7 +129,7 @@ module.exports = async (req, res) => {
       res.json({ rows: raw.map(normalizeCampaign) });
 
     } else if (type === 'ads') {
-      const fields = 'ad_id,ad_name,campaign_id,spend,impressions,actions,action_values,video_p100_watched_actions,video_thruplay_watched_actions,video_3_sec_watched_actions';
+      const fields = 'ad_id,ad_name,campaign_id,spend,impressions,actions,action_values,video_p100_watched_actions,video_thruplay_watched_actions';
       const url = `${FB_API}/act_${AD_ACCOUNT}/insights?level=ad&fields=${fields}&${dateParam}&sort=spend_descending&limit=50&${auth}`;
       const raw = await paginate(url);
 
