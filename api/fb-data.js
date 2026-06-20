@@ -1,8 +1,23 @@
-// GLV Meta Ads Dashboard — FB Graph API proxy
-// Requires env var: FB_ACCESS_TOKEN (long-lived token with ads_read permission)
+// GLV Meta Ads Dashboard — FB Graph API proxy with Upstash Redis cache
+// Requires env vars: FB_ACCESS_TOKEN, UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 
 const AD_ACCOUNT = '359758259164738';
 const FB_API = 'https://graph.facebook.com/v21.0';
+
+// Presets the cron pre-warms; everything else hits Meta live
+const CACHED_PRESETS = new Set(['last_7d', 'last_14d', 'last_30d', 'last_90d']);
+
+async function redisGet(key) {
+  try {
+    const r = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
+    });
+    const { result } = await r.json();
+    return result ? JSON.parse(result) : null;
+  } catch {
+    return null;
+  }
+}
 
 function getAction(actions, type) {
   if (!Array.isArray(actions)) return '0';
@@ -21,7 +36,6 @@ function getVideoMetric(arr) {
   return arr[0].value || '0';
 }
 
-// Only raw absolute numbers — all ratios/calculations are done client-side
 function normalizeCampaign(row) {
   return {
     id:   row.campaign_id || '',
@@ -83,9 +97,22 @@ module.exports = async (req, res) => {
   }
 
   const { type, date_preset, time_range } = req.query;
+  const preset = date_preset || 'last_30d';
+
+  // Serve from cache for standard presets (no time_range = custom date)
+  if (!time_range && CACHED_PRESETS.has(preset)) {
+    const cached = await redisGet(`glv:${type}:${preset}`);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
+  }
+
+  // Cache miss or custom range — hit Meta API live
+  res.setHeader('X-Cache', 'MISS');
   const dateParam = time_range
     ? `time_range=${encodeURIComponent(time_range)}`
-    : `date_preset=${date_preset || 'last_30d'}`;
+    : `date_preset=${preset}`;
   const auth = `access_token=${token}`;
 
   try {
