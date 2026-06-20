@@ -517,7 +517,7 @@ function renderFunnel(seg){
   el.innerHTML=steps.map((s,i)=>{
     const w=barWidth(s.val);
     const valStr=s.na?'—':s.val>=1e6?(s.val/1e6).toFixed(1)+'M':s.val>=1000?(s.val/1000).toFixed(0)+'K':(s.val||'—').toLocaleString();
-    const conn=i<steps.length-1?`<div class="vf-connector"><div class="vf-conn-line"></div>${convLabel(i)?`<span class="vf-pct-badge">${convLabel(i)}</span>`:'<span class="vf-pct-badge" style="color:var(--gray400)">No data</span>'}<div class="vf-conn-line"></div></div>`:'`;
+    const conn=i<steps.length-1?`<div class="vf-connector"><div class="vf-conn-line"></div>${convLabel(i)?`<span class="vf-pct-badge">${convLabel(i)}</span>`:'<span class="vf-pct-badge" style="color:var(--gray400)">No data</span>'}<div class="vf-conn-line"></div></div>`:'';
     return`<div class="vf-step${s.na?' vf-na':''}"><div class="vf-bar" style="width:${w}%;background:${s.color}"><div class="vf-bar-left"><div class="vf-bar-label">${s.label}</div><div class="vf-bar-val">${valStr}</div><div class="vf-bar-sub">${s.sub}</div></div></div></div>${conn}`;
   }).join('');
 }
@@ -717,7 +717,13 @@ function renderCreatives(seg){
 }
 
 async function fetchUsdRate(){
-  try{const r=await fetch('https://api.frankfurter.app/latest?from=CZK&to=USD');const d=await r.json();if(d.rates?.USD)usdRate=d.rates.USD;}catch(e){}
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),1500);
+  try{
+    const r=await fetch('https://api.frankfurter.dev/v1/latest?from=CZK&to=USD',{signal:ctrl.signal});
+    const d=await r.json();
+    if(d.rates?.USD)usdRate=d.rates.USD;
+  }catch(e){}finally{clearTimeout(timer);}
 }
 async function apiFetch(type){
   const qs=new URLSearchParams({type});
