@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GLV Dashboard · Gelavis Ads</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" integrity="sha384-C5yHMHMCYqBhkxSfB6LtQAT2c3ThZ5bHjbpPDGFkSzc0EN5OYJApObRpnJBfVvz" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" integrity="sha384-jZvDSsmGB9oGGT/4l9bHXGoAv1OxvG/cFmSo0dZaSqmBgvQTKDBFAMftlXTmMbNW" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
 <style>
 :root{color-scheme:light;--blue:#3b82f6;--indigo:#6366f1;--purple:#8b5cf6;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--gray50:#f8fafc;--gray100:#f1f5f9;--gray200:#e2e8f0;--gray400:#94a3b8;--gray600:#475569;--gray800:#1e293b;--gray900:#0f172a;}
@@ -729,38 +729,45 @@ async function apiFetch(type){
 function setStatus(msg){const el=document.getElementById('loading-msg');if(el)el.textContent=msg;}
 async function loadData(){
   const loadEl=document.getElementById('loading');const errEl=document.getElementById('error');
-  loadEl.style.display='block';
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  errEl.style.display='none';
-  Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});charts={};
-  const errors=[];
-  setStatus('Loading exchange rate…');await fetchUsdRate();
-  setStatus('Loading campaign totals…');
   try{
-    const d=await apiFetch('aggregate');
-    campaignMeta={};aggregateCampaigns=processAggregateRows(d.rows);
-    filterState={czsk:null,us:null,'czsk-creative':null,'us-creative':null};
-    ['czsk','us'].forEach(seg=>{renderKPIs(seg);renderFunnel(seg);});
-  }catch(err){errors.push('Totals: '+err.message);}
-  setStatus('Loading daily breakdown…');
-  try{
-    const d=await apiFetch('daily');
-    dailyCampaigns=processDaily(d.rows);
-    ['czsk','us'].forEach(seg=>{refreshChart(seg);renderDailyTable(seg);});
-    refreshTrendsChart();renderTrendsTable();
+    loadEl.style.display='block';
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    errEl.style.display='none';
+    Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});charts={};
+    const errors=[];
+    setStatus('Loading exchange rate...');await fetchUsdRate();
+    setStatus('Loading campaign totals...');
+    try{
+      const d=await apiFetch('aggregate');
+      campaignMeta={};aggregateCampaigns=processAggregateRows(d.rows);
+      filterState={czsk:null,us:null,'czsk-creative':null,'us-creative':null};
+      ['czsk','us'].forEach(seg=>{renderKPIs(seg);renderFunnel(seg);});
+    }catch(err){errors.push('Totals: '+err.message);}
+    setStatus('Loading daily breakdown...');
+    try{
+      const d=await apiFetch('daily');
+      dailyCampaigns=processDaily(d.rows);
+      ['czsk','us'].forEach(seg=>{refreshChart(seg);renderDailyTable(seg);});
+      refreshTrendsChart();renderTrendsTable();
+    }catch(err){
+      errors.push('Daily: '+err.message);
+      ['czsk','us'].forEach(seg=>{const el=document.getElementById('daily-table-'+seg);if(el)el.innerHTML=`<div class="empty" style="color:var(--red)">Daily data unavailable: ${err.message}</div>`;});
+    }
+    setStatus('Loading creatives...');
+    try{const d=await apiFetch('ads');adCreatives=processCreatives(d.rows);}catch(err){errors.push('Creatives: '+err.message);}
+    buildAllFilters();
+    ['czsk','us'].forEach(seg=>renderCreatives(seg));
+    loadEl.style.display='none';
+    document.getElementById('updated-at').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    if(errors.length){errEl.style.display='block';errEl.textContent='Partial errors: '+errors.join(' | ');}
+    const activeTab=document.querySelector('.tab-btn.active')?.dataset.tab||'czsk';
+    document.getElementById('panel-'+activeTab)?.classList.add('active');
   }catch(err){
-    errors.push('Daily: '+err.message);
-    ['czsk','us'].forEach(seg=>{const el=document.getElementById('daily-table-'+seg);if(el)el.innerHTML=`<div class="empty" style="color:var(--red)">Daily data unavailable: ${err.message}</div>`;});
+    loadEl.style.display='none';
+    errEl.style.display='block';
+    errEl.textContent='Dashboard failed to render: '+(err?.message||err);
+    document.getElementById('panel-czsk')?.classList.add('active');
   }
-  setStatus('Loading creatives…');
-  try{const d=await apiFetch('ads');adCreatives=processCreatives(d.rows);}catch(err){errors.push('Creatives: '+err.message);}
-  buildAllFilters();
-  ['czsk','us'].forEach(seg=>renderCreatives(seg));
-  loadEl.style.display='none';
-  document.getElementById('updated-at').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  if(errors.length){errEl.style.display='block';errEl.textContent='Partial errors: '+errors.join(' | ');}
-  const activeTab=document.querySelector('.tab-btn.active')?.dataset.tab||'czsk';
-  document.getElementById('panel-'+activeTab)?.classList.add('active');
 }
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
