@@ -1,0 +1,7 @@
+{
+  "name": "glv-meta-ads",
+  "version": "1.0.0",
+  "description": "GLV Meta Ads Dashboard — Vercel serverless deployment",
+  "private": true,
+  "engines": { "node": ">=18" }
+}
