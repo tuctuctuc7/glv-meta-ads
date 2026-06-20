@@ -1,5 +1,5 @@
 // GLV Meta Ads Dashboard — FB Graph API proxy with Upstash Redis cache
-// Requires env vars: FB_ACCESS_TOKEN, UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+// Requires env vars: FB_ACCESS_TOKEN, KV_REST_API_URL, KV_REST_API_TOKEN
 
 const AD_ACCOUNT = '359758259164738';
 const FB_API = 'https://graph.facebook.com/v21.0';
@@ -9,8 +9,10 @@ const CACHED_PRESETS = new Set(['last_7d', 'last_14d', 'last_30d', 'last_90d']);
 
 async function redisGet(key) {
   try {
-    const r = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/${encodeURIComponent(key)}`, {
-      headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
+    const redisUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+    const redisToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+    const r = await fetch(`${redisUrl}/get/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${redisToken}` },
     });
     const { result } = await r.json();
     return result ? JSON.parse(result) : null;

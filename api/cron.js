@@ -21,10 +21,12 @@ function sinceDate(preset) {
 }
 
 async function redisCmd(...args) {
-  const r = await fetch(process.env.UPSTASH_REDIS_REST_URL, {
+  const redisUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const r = await fetch(redisUrl, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+      Authorization: `Bearer ${redisToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(args),
