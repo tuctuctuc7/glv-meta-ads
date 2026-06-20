@@ -3,7 +3,7 @@
   "version": 2,
   "functions": {
     "api/fb-data.js": {
-      "runtime": "@vercel/node@3"
+      "runtime": "nodejs20.x"
     }
   }
 }
